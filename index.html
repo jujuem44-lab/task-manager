@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes Tâches — Juju</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #18181c;
+    --surface2: #222228;
+    --border: #2e2e36;
+    --accent-jour: #f5c842;
+    --accent-attente: #6c8fff;
+    --accent-perso: #ff7eb3;
+    --text: #f0f0f5;
+    --text-muted: #7070a0;
+    --text-dim: #404060;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── HEADER ─────────────────────────────────── */
+  header {
+    padding: 28px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent-jour); }
+
+  .date-display {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    background: var(--surface);
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* ─── NAV ────────────────────────────────────── */
+  nav {
+    display: flex;
+    gap: 6px;
+    padding: 20px 24px 0;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .nav-btn.active { background: var(--surface2); color: var(--text); border-color: var(--border); }
+
+  /* ─── MAIN ───────────────────────────────────── */
+  main { padding: 24px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ─── TASKS VIEW ─────────────────────────────── */
+  .sections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .section-card.jour::before { background: var(--accent-jour); }
+  .section-card.attente::before { background: var(--accent-attente); }
+  .section-card.perso::before { background: var(--accent-perso); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .jour .dot { background: var(--accent-jour); }
+  .attente .dot { background: var(--accent-attente); }
+  .perso .dot { background: var(--accent-perso); }
+
+  .section-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 3px 9px;
+    border-radius: 10px;
+  }
+
+  /* ─── TASK ITEMS ─────────────────────────────── */
+  .task-list { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+    group: true;
+  }
+  .task-item:hover { border-color: var(--border); }
+
+  .task-checkbox {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    background: transparent;
+  }
+  .jour .task-checkbox.checked { background: var(--accent-jour); border-color: var(--accent-jour); }
+  .attente .task-checkbox.checked { background: var(--accent-attente); border-color: var(--accent-attente); }
+  .perso .task-checkbox.checked { background: var(--accent-perso); border-color: var(--accent-perso); }
+
+  .task-checkbox.checked::after {
+    content: '✓';
+    font-size: 11px;
+    color: #000;
+    font-weight: 700;
+  }
+
+  .task-label {
+    flex: 1;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    transition: all 0.2s;
+  }
+  .task-label.done {
+    text-decoration: line-through;
+    color: var(--text-dim);
+  }
+
+  .task-delete {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  .task-item:hover .task-delete { opacity: 1; }
+  .task-delete:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+
+  /* ─── ADD TASK ───────────────────────────────── */
+  .add-task-form {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .add-task-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-task-input:focus { border-color: var(--text-dim); }
+  .add-task-input::placeholder { color: var(--text-dim); }
+
+  .add-task-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .jour .add-task-btn:hover { background: var(--accent-jour); color: #000; border-color: var(--accent-jour); }
+  .attente .add-task-btn:hover { background: var(--accent-attente); color: #fff; border-color: var(--accent-attente); }
+  .perso .add-task-btn:hover { background: var(--accent-perso); color: #000; border-color: var(--accent-perso); }
+
+  /* ─── RESET JOUR ─────────────────────────────── */
+  .reset-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .reset-bar span { font-size: 0.82rem; color: var(--text-muted); }
+  .reset-btn {
+    font-size: 0.78rem;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--accent-jour); color: var(--accent-jour); }
+
+  /* ─── HISTORY VIEW ───────────────────────────── */
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .history-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .history-clear {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .history-clear:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+  .history-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    padding: 40px 20px;
+  }
+
+  .history-day {
+    margin-bottom: 20px;
+  }
+  .history-day-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 5px;
+  }
+  .history-cat {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .history-cat.jour { background: rgba(245,200,66,0.15); color: var(--accent-jour); }
+  .history-cat.attente { background: rgba(108,143,255,0.15); color: var(--accent-attente); }
+  .history-cat.perso { background: rgba(255,126,179,0.15); color: var(--accent-perso); }
+
+  .history-task { font-size: 0.87rem; flex: 1; }
+  .history-time { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
+
+  /* ─── SETTINGS VIEW ──────────────────────────── */
+  .settings-section {
+    max-width: 540px;
+  }
+  .settings-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+  .settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .settings-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .settings-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .settings-input:focus { border-color: var(--accent-jour); }
+  .settings-input::placeholder { color: var(--text-dim); }
+  .settings-save {
+    margin-top: 12px;
+    padding: 9px 20px;
+    background: var(--accent-jour);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .settings-save:hover { opacity: 0.85; }
+  .settings-note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ─── PROGRESS BAR ───────────────────────────── */
+  .progress-wrap {
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    margin-top: 14px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .jour .progress-bar { background: var(--accent-jour); }
+  .attente .progress-bar { background: var(--accent-attente); }
+  .perso .progress-bar { background: var(--accent-perso); }
+
+  @media (max-width: 480px) {
+    header, nav, main { padding-left: 16px; padding-right: 16px; }
+    .sections-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">mes<span>tâches</span></div>
+  <div class="date-display" id="dateDisplay"></div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showView('tasks')">📋 Tâches</button>
+  <button class="nav-btn" onclick="showView('history')">📅 Historique</button>
+  <button class="nav-btn" onclick="showView('settings')">⚙️ Réglages</button>
+</nav>
+
+<main>
+
+  <!-- ── TASKS VIEW ── -->
+  <div class="view active" id="view-tasks">
+    <div class="reset-bar">
+      <span>Les tâches du jour se réinitialisent chaque matin à minuit.</span>
+      <button class="reset-btn" onclick="resetJour()">🔄 Réinitialiser Aujourd'hui</button>
+    </div>
+    <div class="sections-grid">
+
+      <!-- JOUR -->
+      <div class="section-card jour">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="dot"></span>✅ Tâches du jour
+          </div>
+          <span class="section-count" id="count-jour">0</span>
+        </div>
+        <div class="task-list" id="list-jour"></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progress-jour" style="width:0%"></div></div>
+        <div class="add-task-form">
+          <input class="add-task-input" id="input-jour" placeholder="Ajouter une tâche..." onkeydown="handleKey(event,'jour')">
+          <button class="add-task-btn" onclick="addTask('jour')">+</button>
+        </div>
+      </div>
+
+      <!-- ATTENTE -->
+      <div class="section-card attente">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="dot"></span>📌 En attente / Semaine
+          </div>
+          <span class="section-count" id="count-attente">0</span>
+        </div>
+        <div class="task-list" id="list-attente"></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progress-attente" style="width:0%"></div></div>
+        <div class="add-task-form">
+          <input class="add-task-input" id="input-attente" placeholder="Ajouter une tâche..." onkeydown="handleKey(event,'attente')">
+          <button class="add-task-btn" onclick="addTask('attente')">+</button>
+        </div>
+      </div>
+
+      <!-- PERSO -->
+      <div class="section-card perso">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="dot"></span>👤 Perso
+          </div>
+          <span class="section-count" id="count-perso">0</span>
+        </div>
+        <div class="task-list" id="list-perso"></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progress-perso" style="width:0%"></div></div>
+        <div class="add-task-form">
+          <input class="add-task-input" id="input-perso" placeholder="Ajouter une tâche..." onkeydown="handleKey(event,'perso')">
+          <button class="add-task-btn" onclick="addTask('perso')">+</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── HISTORY VIEW ── -->
+  <div class="view" id="view-history">
+    <div class="history-header">
+      <div class="history-title">📅 Historique des tâches complétées</div>
+      <button class="history-clear" onclick="clearHistory()">Effacer l'historique</button>
+    </div>
+    <div id="history-content"></div>
+  </div>
+
+  <!-- ── SETTINGS VIEW ── -->
+  <div class="view" id="view-settings">
+    <div class="settings-section">
+      <div class="settings-title">⚙️ Réglages</div>
+      <div class="settings-card">
+        <label class="settings-label">🔗 Webhook Make.com (sync Google Sheets)</label>
+        <input class="settings-input" id="webhookUrl" placeholder="https://hook.eu1.make.com/..." >
+        <button class="settings-save" onclick="saveWebhook()">Enregistrer</button>
+        <p class="settings-note">
+          Chaque tâche cochée sera envoyée automatiquement vers Google Sheets via Make.<br>
+          Données envoyées : date, heure, catégorie, nom de la tâche.
+        </p>
+      </div>
+      <div class="settings-card">
+        <label class="settings-label">🔄 Réinitialisation automatique</label>
+        <p class="settings-note">
+          Les tâches de la section "Tâches du jour" sont automatiquement archivées et réinitialisées chaque matin à minuit.<br>
+          Les sections "En attente" et "Perso" persistent jusqu'à ce que tu les coches.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────
+let tasks = { jour: [], attente: [], perso: [] };
+let history = [];
+let webhookUrl = '';
+let lastResetDate = '';
+
+const LABELS = { jour: 'Tâches du jour', attente: 'En attente', perso: 'Perso' };
+
+// ─── INIT ─────────────────────────────────────────────
+function init() {
+  tasks = JSON.parse(localStorage.getItem('tasks') || '{"jour":[],"attente":[],"perso":[]}');
+  history = JSON.parse(localStorage.getItem('taskHistory') || '[]');
+  webhookUrl = localStorage.getItem('webhookUrl') || '';
+  lastResetDate = localStorage.getItem('lastResetDate') || '';
+  document.getElementById('webhookUrl').value = webhookUrl;
+
+  checkMidnightReset();
+  updateDateDisplay();
+  renderAll();
+  setInterval(checkMidnightReset, 60000);
+}
+
+// ─── DATE ─────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nowTime() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function updateDateDisplay() {
+  document.getElementById('dateDisplay').textContent = todayStr();
+}
+
+// ─── MIDNIGHT RESET ───────────────────────────────────
+function checkMidnightReset() {
+  const today = todayKey();
+  if (lastResetDate !== today) {
+    const doneJour = tasks.jour.filter(t => t.done);
+    doneJour.forEach(t => {
+      if (!history.find(h => h.id === t.id)) {
+        history.push({ id: t.id, label: t.label, category: 'jour', date: lastResetDate || today, time: '--:--' });
+      }
+    });
+    tasks.jour = tasks.jour.filter(t => !t.done);
+    lastResetDate = today;
+    localStorage.setItem('lastResetDate', today);
+    save();
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────
+function renderAll() {
+  ['jour','attente','perso'].forEach(cat => renderSection(cat));
+  renderHistory();
+}
+
+function renderSection(cat) {
+  const list = document.getElementById('list-' + cat);
+  list.innerHTML = '';
+  const items = tasks[cat];
+
+  items.forEach((task, i) => {
+    const div = document.createElement('div');
+    div.className = 'task-item';
+    div.innerHTML = `
+      <div class="task-checkbox ${task.done ? 'checked' : ''}" onclick="toggleTask('${cat}',${i})"></div>
+      <span class="task-label ${task.done ? 'done' : ''}">${escHtml(task.label)}</span>
+      <button class="task-delete" onclick="deleteTask('${cat}',${i})" title="Supprimer">×</button>
+    `;
+    list.appendChild(div);
+  });
+
+  const total = items.length;
+  const done = items.filter(t => t.done).length;
+  document.getElementById('count-' + cat).textContent = `${done}/${total}`;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('progress-' + cat).style.width = pct + '%';
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-content');
+  if (!history.length) {
+    el.innerHTML = '<div class="history-empty">Aucune tâche complétée pour l\'instant.</div>';
+    return;
+  }
+  const grouped = {};
+  [...history].reverse().forEach(h => {
+    const key = h.date;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(h);
+  });
+  el.innerHTML = Object.keys(grouped).map(date => {
+    const d = new Date(date);
+    const label = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const entries = grouped[date].map(h => `
+      <div class="history-entry">
+        <span class="history-cat ${h.category}">${LABELS[h.category] || h.category}</span>
+        <span class="history-task">${escHtml(h.label)}</span>
+        <span class="history-time">${h.time}</span>
+      </div>
+    `).join('');
+    return `<div class="history-day"><div class="history-day-title">${label}</div>${entries}</div>`;
+  }).join('');
+}
+
+// ─── TASK ACTIONS ──────────────────────────────────────
+function addTask(cat) {
+  const input = document.getElementById('input-' + cat);
+  const label = input.value.trim();
+  if (!label) return;
+  const task = { id: Date.now().toString(), label, done: false };
+  tasks[cat].push(task);
+  input.value = '';
+  save();
+  renderSection(cat);
+}
+
+function handleKey(e, cat) {
+  if (e.key === 'Enter') addTask(cat);
+}
+
+function toggleTask(cat, i) {
+  const task = tasks[cat][i];
+  task.done = !task.done;
+  if (task.done) {
+    const entry = { id: task.id, label: task.label, category: cat, date: todayKey(), time: nowTime() };
+    history.push(entry);
+    sendWebhook(entry);
+    showToast('✓ Tâche complétée !');
+  } else {
+    history = history.filter(h => h.id !== task.id);
+  }
+  save();
+  renderSection(cat);
+}
+
+function deleteTask(cat, i) {
+  const task = tasks[cat][i];
+  history = history.filter(h => h.id !== task.id);
+  tasks[cat].splice(i, 1);
+  save();
+  renderSection(cat);
+}
+
+function resetJour() {
+  if (!confirm('Réinitialiser toutes les tâches du jour ?')) return;
+  tasks.jour.filter(t => t.done).forEach(t => {
+    if (!history.find(h => h.id === t.id)) {
+      history.push({ id: t.id, label: t.label, category: 'jour', date: todayKey(), time: nowTime() });
+    }
+  });
+  tasks.jour = tasks.jour.filter(t => !t.done);
+  save();
+  renderSection('jour');
+  showToast('Section du jour réinitialisée');
+}
+
+function clearHistory() {
+  if (!confirm('Effacer tout l\'historique ?')) return;
+  history = [];
+  save();
+  renderHistory();
+}
+
+// ─── WEBHOOK ──────────────────────────────────────────
+function sendWebhook(entry) {
+  const url = localStorage.getItem('webhookUrl');
+  if (!url) return;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app: 'MesTâches', date: entry.date, heure: entry.time, categorie: LABELS[entry.category], tache: entry.label })
+  }).catch(() => {});
+}
+
+function saveWebhook() {
+  const url = document.getElementById('webhookUrl').value.trim();
+  localStorage.setItem('webhookUrl', url);
+  webhookUrl = url;
+  showToast('✓ Webhook enregistré');
+}
+
+// ─── UTILS ────────────────────────────────────────────
+function save() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('taskHistory', JSON.stringify(history));
+}
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
