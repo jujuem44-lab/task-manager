@@ -774,6 +774,17 @@ function toggleTask(cat, i) {
     history.push(entry);
     sendWebhook(entry);
     showToast('✓ Tâche complétée !');
+    // Pour "attente" et "perso" : supprimer après un court délai visuel
+    if (cat === 'attente' || cat === 'perso') {
+      save();
+      renderSection(cat);
+      setTimeout(() => {
+        tasks[cat] = tasks[cat].filter(t => t.id !== task.id);
+        save();
+        renderSection(cat);
+      }, 600);
+      return;
+    }
   } else {
     history = history.filter(h => h.id !== task.id);
   }
